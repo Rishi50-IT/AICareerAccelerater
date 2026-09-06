@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to verify caller authentication
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to verify caller owns the resource path
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Isolate user data strictly to owner
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Explicit deny for top-level arbitrary access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
